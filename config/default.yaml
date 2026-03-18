@@ -1,0 +1,121 @@
+# Archivist Discord Bot - Configuration
+
+discord:
+  token: "YOUR_DISCORD_BOT_TOKEN"
+  watched_channels: []
+  owner_id: "YOUR_DISCORD_USER_ID"
+  digest_time: "08:00" # HH:MM format
+
+# Default behavior (can be overridden per-message with flags)
+defaults:
+  summary: true
+  tags: true
+  archive: true
+
+# Google Gemini API
+gemini:
+  api_key: "YOUR_GEMINI_API_KEY"
+  model: "gemini-1.5-flash"
+  max_tokens: 1024
+  
+  # Pass 1: Classification & Tagging
+  tag_system_prompt: |
+    You are a professional librarian and archivist. Analyze the provided content.
+    1. Determine the **Genre** (Fiction, Personal Essay, Technical Article, News, Social Media, Academic, etc.)
+    2. Select 2-5 relevant **Tags** from the provided pool.
+    3. Suggest 1-3 **New Tags** if the pool is insufficient.
+    4. Extract key **Metadata** (Author, Publication, Date if visible).
+    
+    Respond ONLY with a JSON object: 
+    {
+      "genre": "...", 
+      "tags": ["..."], 
+      "new_tags": ["..."], 
+      "metadata": {"author": "...", "publication": "...", "date": "..."}
+    }
+
+  # Pass 2: Context-Aware Summarization
+  # The actual prompt will be constructed in code based on the Genre.
+  summary_system_prompt: |
+    You are a concise research librarian. Provide a brief gloss (one-line subject description) 
+    and a 2-3 sentence summary.
+    
+    GUIDELINES BY GENRE:
+    - FICTION: Avoid spoilers. Focus on 'vibe', themes, and setting. (e.g., "A haunting gothic horror about...")
+    - PERSONAL ESSAY: Focus on the 'aboutness' and the author's central reflection/theme.
+    - TECHNICAL: Focus on the core thesis, data, or technical contribution.
+    - SOCIAL MEDIA: Be extremely brief. Focus on the main point or event mentioned.
+    
+    Respond in this exact format:
+    **Gloss:** [one-line subject description]
+    **Summary:** [2-3 sentence summary]
+
+  # OCR / Alt-Text Prompt
+  image_system_prompt: |
+    You are an accessibility expert. Describe the provided image for a blind or low-vision user.
+    - If it is a screenshot of a UI (like Discord or a browser), ignore the surrounding 'cruft' (sidebars, inputs) 
+      and focus on the central content (messages, article text).
+    - Provide a clean transcription of any text found in the image.
+    - For photographs or art, describe the subject, style, and tone concisely.
+    
+    Format your response as:
+    **Alt Text:** [Concise description for screen readers]
+    **Transcription:** [Full text if applicable, otherwise omit]
+
+# Archival & Snapshots
+archive:
+  timeout: 30
+  services:
+    - archive_is
+    - wayback
+  # Snapshot settings (Placeholder for Playwright integration)
+  snapshots:
+    enabled: true
+    format: "pdf" # Use PDF for text layer preservation
+
+# PostgreSQL connection
+database:
+  host: "localhost"
+  port: 5432
+  database: "archivist"
+  user: "archivist"
+  password: "YOUR_DB_PASSWORD"
+
+seed_tags:
+  - ai-ml
+  - programming
+  - linux
+  - networking
+  - security
+  - privacy
+  - self-hosting
+  - kubernetes
+  - hardware
+  - science
+  - mathematics
+  - linguistics
+  - history
+  - philosophy
+  - politics
+  - economics
+  - culture
+  - art
+  - music
+  - gaming
+  - writing
+  - education
+  - health
+  - environment
+  - space
+  - law
+  - open-source
+  - research
+  - news
+  - humor
+  - fiction
+  - essay
+  - fanfiction
+  - fandom
+  - how-to
+  - recipes
+  - video
