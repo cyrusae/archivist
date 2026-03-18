@@ -54,5 +54,6 @@ Archivist is a "Digital Librarian" Discord bot. It archives links, snapshots pag
 - [ ] **Web Dashboard:** Simple internal UI for browsing the library.
 - [ ] Improve UX for conditional configurations of whether to default to summary/track specific channels/etc. (simple web UI?)
 - [ ] Reorganize repo (separate .py files and docs)
+- [ ] More detailed documentation
 
 - [ ] Human review of README (remind human to do this after major updates)
