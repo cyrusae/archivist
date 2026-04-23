@@ -7,9 +7,12 @@ from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, No
 
 logger = logging.getLogger("archivist.youtube")
 
-# Match YouTube video IDs from various URL formats
+# Match YouTube video IDs from various URL formats.
+# Covers www, m (mobile), and music subdomains as well as youtu.be short links.
 YT_ID_PATTERN = re.compile(
-    r'(?:https?://)?(?:www\.)?(?:youtube\.com/(?:watch\?v=|embed/|v/|shorts/)|youtu\.be/)([a-zA-Z0-9_-]{11})'
+    r'(?:https?://)?(?:(?:www|m|music)\.)?'
+    r'(?:youtube\.com/(?:watch\?v=|embed/|v/|shorts/)|youtu\.be/)'
+    r'([a-zA-Z0-9_-]{11})'
 )
 
 def extract_video_id(url: str) -> Optional[str]:
@@ -35,9 +38,11 @@ async def fetch_transcript(url: str) -> Optional[str]:
         
         def _get_transcript():
             try:
-                transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
-                return " ".join([t['text'] for t in transcript_list])
-            except (TranscriptsDisabled, NoTranscriptFound, Exception) as e:
+                # youtube-transcript-api >= 1.2.4 uses an instance-based API.
+                # `fetch()` returns a FetchedTranscript whose items expose `.text`.
+                fetched = YouTubeTranscriptApi().fetch(video_id)
+                return " ".join(snippet.text for snippet in fetched)
+            except Exception as e:
                 logger.warning(f"Could not fetch transcript for {video_id}: {e}")
                 return None
 

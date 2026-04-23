@@ -3,8 +3,12 @@
 discord:
   token: "YOUR_DISCORD_BOT_TOKEN"
   watched_channels: []
-  owner_id: "YOUR_DISCORD_USER_ID"
-  digest_time: "08:00" # HH:MM format
+  # Snowflake ID of the Discord user who receives daily digests and is the only
+  # user authorized to use `!search`. Leave blank to disable both features.
+  owner_id: ""
+  digest_time: "08:00" # HH:MM, interpreted in `timezone` below
+  # IANA timezone name (e.g. "America/New_York"). Omit / blank = UTC.
+  timezone: ""
 
 # Default behavior (can be overridden per-message with flags)
 defaults:
@@ -12,10 +16,16 @@ defaults:
   tags: true
   archive: true
 
+# Per-author rate limits. The owner (discord.owner_id) is exempt.
+# Limits count one event per *message*, not per URL.
+rate_limit:
+  per_minute: 5
+  per_hour: 30
+
 # Google Gemini API
 gemini:
   api_key: "YOUR_GEMINI_API_KEY"
-  model: "gemini-1.5-flash"
+  model: "gemini-2.0-flash"
   max_tokens: 1024
   
   # Pass 1: Classification & Tagging
@@ -80,6 +90,29 @@ database:
   database: "archivist"
   user: "archivist"
   password: "YOUR_DB_PASSWORD"
+
+# Per-server and per-channel overrides.
+# Hierarchy: defaults < server < role < channel (channel wins).
+#
+# Role override with `ignore: true` makes Archivist completely invisible to
+# that user — no archiving, no reactions. Example:
+#
+#   overrides:
+#     servers:
+#       "123456789012345678":          # guild snowflake
+#         roles:
+#           "987654321098765432":      # "Archivist-ignore" role snowflake
+#             ignore: true
+#           "111222333444555666":      # power-user role: always archive, skip summary
+#             summary: false
+#             archive: true
+#     channels:
+#       "555666777888999000":          # never tag anything in this channel
+#         tags: false
+#
+# Note: role overrides require the Server Members privileged intent to be
+# enabled in the Discord Developer Portal (Bot → Privileged Gateway Intents).
+overrides: {}
 
 seed_tags:
   - ai-ml

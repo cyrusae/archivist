@@ -1,4 +1,11 @@
-"""Snapshot service: PDF snapshots using Playwright."""
+"""Snapshot service: PDF snapshots using Playwright.
+
+SSRF note: we validate the *initial* URL against `net.validate_public_url`
+before launching the browser, but Playwright performs its own DNS resolution
+and follows redirects in-browser — a redirect to a private host would still be
+fetched by Chromium. Deeper hardening (request interception via `page.route`
+with a per-request validator) is tracked separately in `FIX_PLAN.md`.
+"""
 
 import logging
 import asyncio
@@ -8,6 +15,8 @@ from dataclasses import dataclass
 from typing import Optional
 
 from playwright.async_api import async_playwright
+
+from net import UnsafeURLError, validate_public_url
 
 logger = logging.getLogger("archivist.snapshot")
 
@@ -21,9 +30,15 @@ async def capture_snapshot(url: str, output_dir: str = "snapshots") -> SnapshotR
     """
     Capture a PDF snapshot of a URL using Playwright.
     """
+    try:
+        await validate_public_url(url)
+    except UnsafeURLError as e:
+        logger.warning(f"Blocked snapshot of {url!r}: {e}")
+        return SnapshotResult(error="URL blocked (non-public host)", ok=False)
+
     out_path = Path(output_dir)
     out_path.mkdir(exist_ok=True, parents=True)
-    
+
     url_hash = hashlib.md5(url.encode()).hexdigest()[:12]
     pdf_file = out_path / f"snap_{url_hash}.pdf"
 

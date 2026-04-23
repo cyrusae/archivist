@@ -6,11 +6,18 @@ This guide covers how to set up, test, and deploy the Archivist bot, from your l
 
 ## 1. Prerequisites
 
-- **Python 3.12+** (Managed by [uv](https://docs.astral.sh/uv/))
-- **PostgreSQL** (Local or via Docker)
+- **Python 3.14+** (Managed by [uv](https://docs.astral.sh/uv/))
+- **PostgreSQL 14+** with the `pgvector` extension available
+  (the bot issues `CREATE EXTENSION IF NOT EXISTS vector` on first connect,
+  but the server must permit it — see [`DATABASE.md`](DATABASE.md) for
+  platform-specific installation and a first-run checklist)
 - **Google Gemini API Key** (Obtain from [Google AI Studio](https://aistudio.google.com/))
 - **Discord Bot Token**
-  - **Required Intents:** `Server Members`, `Message Content`.
+  - **Required Intents:** both must be enabled in the
+  [Discord Developer Portal](https://discord.com/developers) under
+  Bot → Privileged Gateway Intents:
+  - **Message Content Intent** — to read message text
+  - **Server Members Intent** — for role-based overrides (`ignore: true`, etc.)
   - **Permissions:** `Send Messages`, `Embed Links`, `Attach Files`, `Read Message History`.
 
 ---
@@ -57,11 +64,11 @@ uv run python bot.py
 
 ### Automated Tests
 
-Run the parser unit tests to ensure URL extraction and flags are working:
-
 ```bash
-uv run python tests/test_parser.py
+uv run pytest
 ```
+
+61 tests cover the SSRF guard, message parser, formatter length limits, and YouTube URL patterns.
 
 ### Manual Verification
 
@@ -77,19 +84,42 @@ Post the following in a watched Discord channel to verify specific features:
 
 ## 4. K3s Deployment
 
-### A. Build the Image
+### A. Create the Secret
+
+The `archivist-secrets` Secret must exist in the `archivist` namespace **before**
+applying the manifest. The `deployment.yaml` in this repo does not contain
+secret values — never add them there.
+
+**Option 1 — kubectl (quickest):**
+
+```bash
+kubectl create secret generic archivist-secrets \
+  --namespace archivist \
+  --from-literal=DISCORD_TOKEN='your-token' \
+  --from-literal=GEMINI_API_KEY='your-key' \
+  --from-literal=DB_PASSWORD='your-password'
+```
+
+**Option 2 — SealedSecrets (recommended for gitops):**
+
+```bash
+# Fill in secrets.example.yaml (never commit the filled-in version), then:
+kubeseal --format yaml < secrets.example.yaml > sealed-secret.yaml
+kubectl apply -f sealed-secret.yaml
+```
+
+`secrets.example.yaml` is a template in the repo root; `secrets.yaml` (any
+filled-in copy) is listed in `.gitignore`.
+
+---
+
+### B. Build the Image
 
 Archivist uses Playwright, so the image must include browser binaries.
 ```bash
 docker build -t your-registry/archivist:latest .
 docker push your-registry/archivist:latest
 ```
-
-### B. Configure Secrets
-
-Open `deployment.yaml` and update the `Secret` section with your base64-encoded tokens or use a tool like `sops` / `sealed-secrets`.
-
-*Note: The bot also supports direct environment variables if you prefer to inject them via your CI/CD pipeline.*
 
 ### C. Apply to Cluster
 

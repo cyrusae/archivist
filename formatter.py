@@ -3,6 +3,17 @@
 from datetime import datetime, timezone
 from typing import Optional, List
 
+# Discord's hard limit is 2000 chars for normal messages.  Leave a small buffer
+# so that any caller-side concatenation (e.g. appending a PDF note) stays safe.
+_DISCORD_LIMIT = 1950
+
+
+def _cap(text: str, n: int) -> str:
+    """Truncate *text* to at most *n* characters, appending '…' if cut."""
+    if len(text) <= n:
+        return text
+    return text[: n - 1] + "…"
+
 
 def format_archive_message(
     url: str,
@@ -24,6 +35,18 @@ def format_archive_message(
     1. Readable in Discord
     2. Copy-pasteable into Obsidian as-is
     """
+    # --- Per-field caps (defence-in-depth; ai.py already caps its outputs) ----
+    # These prevent a single long field from blowing the 2000-char Discord limit
+    # even when the AI returns a correctly-shaped but oversized response.
+    if title:
+        title = _cap(title, 200)
+    if gloss:
+        gloss = _cap(gloss, 150)
+    if summary:
+        summary = _cap(summary, 500)
+    if commentary:
+        commentary = _cap(commentary, 300)
+
     lines = []
 
     # Header: title or URL
@@ -71,4 +94,11 @@ def format_archive_message(
         for err in errors:
             lines.append(f"-# ⚠️ {err}")
 
-    return "\n".join(lines)
+    result = "\n".join(lines)
+
+    # Hard backstop — should rarely fire given the per-field caps above, but
+    # very long URLs, many error lines, or many tags can still push us over.
+    if len(result) > _DISCORD_LIMIT:
+        result = result[: _DISCORD_LIMIT - 1] + "…"
+
+    return result

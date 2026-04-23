@@ -5,17 +5,10 @@ metadata:
   name: archivist
 
 ---
-apiVersion: v1
-kind: Secret
-metadata:
-  name: archivist-secrets
-  namespace: archivist
-type: Opaque
-stringData:
-  DISCORD_TOKEN: "YOUR_DISCORD_BOT_TOKEN"
-  GEMINI_API_KEY: "YOUR_GEMINI_API_KEY"
-  DB_PASSWORD: "YOUR_DB_PASSWORD"
-
+# NOTE: the `archivist-secrets` Secret must exist in the `archivist` namespace
+# before this manifest is applied. Do NOT commit a secret manifest to git — see
+# DEPLOYMENT.md § "Secrets" for the recommended `kubectl create secret` or
+# SealedSecret workflow. A template is in `secrets.example.yaml` for reference.
 ---
 # PostgreSQL for Archivist
 apiVersion: apps/v1
@@ -36,7 +29,9 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: postgres:16-alpine
+          # Upstream `postgres:*` images don't ship pgvector; use the
+          # pgvector-published image so `CREATE EXTENSION vector` works.
+          image: pgvector/pgvector:pg16
           ports:
             - containerPort: 5432
           env:

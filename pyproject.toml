@@ -10,10 +10,16 @@ dependencies = [
     "discord-py>=2.7.1",
     "google-generativeai>=0.8.6",
     "lxml>=6.0.2",
+    "pgvector>=0.3.6",
     "playwright>=1.58.0",
     "pyyaml>=6.0.3",
     "readability-lxml>=0.8.4.1",
     "strip-tags>=0.6",
     "uvloop>=0.22.1",
     "youtube-transcript-api>=1.2.4",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
 ]

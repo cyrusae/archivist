@@ -153,6 +153,10 @@ activemq-data/
 .env
 .envrc
 .venv
+
+# Secret manifests — template lives in secrets.example.yaml; filled copies must not be committed
+secrets.yaml
+config/config.yaml
 env/
 venv/
 ENV/
